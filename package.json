@@ -1,0 +1,21 @@
+{
+  "name": "hechaichi-library-pos",
+  "productName": "Hechaichi Library POS",
+  "version": "1.0.0",
+  "description": "نظام إدارة المبيعات والمخزون",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.hechaichi.pos",
+    "win": {
+      "target": "portable"
+    }
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
