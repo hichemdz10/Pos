@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم شاشة الزبون v2</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{--p:#7c3aed;--p2:#6d28d9;--g:#16a34a;--r:#dc2626;--bg:#f0f2f8;--card:#fff;--border:#e5e7eb;--text:#1e1b4b;--sub:#64748b;--muted:#9ca3af;}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;}
+.topbar{background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(124,58,237,.3);}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-icon{width:44px;height:44px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.topbar-title{font-size:18px;font-weight:900;}
+.topbar-sub{font-size:11px;opacity:.7;margin-top:2px;}
+.live-badge{display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4);padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+.container{max-width:1120px;margin:0 auto;padding:24px 16px;display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;}
+@media(max-width:768px){.container{grid-template-columns:1fr;}}
+.card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;}
+.input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;direction:rtl;background:#fff;color:var(--text);transition:.2s;}
+.input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(124,58,237,.1);}
+.fg{margin-bottom:14px;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{padding:10px 18px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:.2s;white-space:nowrap;}
+.btn:active{transform:scale(.96);}
+.btn-p{background:var(--p);color:#fff;} .btn-p:hover{background:var(--p2);}
+.btn-g{background:var(--g);color:#fff;} .btn-r{background:var(--r);color:#fff;}
+.btn-out{background:#fff;color:var(--p);border:1.5px solid var(--p);}
+.btn-gray{background:#f4f6fb;color:var(--text);border:1px solid var(--border);}
+.btn-full{width:100%;justify-content:center;} .btn-sm{padding:6px 12px;font-size:12px;}
+/* Slides */
+.slides-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.slide-item{background:#f8fafc;border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:grab;transition:.2s;}
+.slide-item:hover{border-color:#c4b5fd;background:#faf5ff;}
+.slide-item.disabled{opacity:.5;}
+.slide-drag{color:var(--muted);font-size:18px;cursor:grab;}
+.slide-thumb{width:68px;height:44px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;}
+.slide-thumb img{width:100%;height:100%;object-fit:cover;}
+.slide-info{flex:1;min-width:0;}
+.slide-type-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;margin-bottom:3px;}
+.sb-welcome{background:#ede9fe;color:var(--p);} .sb-promo{background:#fef3c7;color:#d97706;}
+.sb-stats{background:#dcfce7;color:#16a34a;} .sb-image{background:#dbeafe;color:#2563eb;} .sb-custom{background:#f3f4f6;color:#374151;}
+.slide-title-text{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.slide-dur{font-size:10px;color:var(--muted);margin-top:2px;display:flex;gap:4px;flex-wrap:wrap;}
+.fx-pill{background:#ede9fe;color:#7c3aed;font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;}
+.anim-pill{background:#fef3c7;color:#d97706;font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;}
+.slide-actions{display:flex;gap:5px;flex-shrink:0;}
+.ic-btn{width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.2s;}
+.ic-edit{background:#f0f9ff;color:#0284c7;} .ic-edit:hover{background:#0284c7;color:#fff;}
+.ic-del{background:#fef2f2;color:var(--r);} .ic-del:hover{background:var(--r);color:#fff;}
+.ic-toggle{background:#f0fdf4;color:var(--g);} .ic-toggle.off{background:#f9fafb;color:var(--muted);}
+/* Images */
+.upload-zone{border:2px dashed #c4b5fd;border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:.2s;background:#faf5ff;margin-bottom:12px;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--p);background:#ede9fe;}
+.idb-badge{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;}
+.storage-meter{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;}
+.storage-label{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;display:flex;justify-content:space-between;}
+.storage-bar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;}
+.storage-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#3b82f6);transition:width .5s;}
+.img-preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.img-thumb-wrap{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#e2e8f0;}
+.img-thumb-wrap img{width:100%;height:100%;object-fit:cover;}
+.img-thumb-del{position:absolute;top:4px;left:4px;width:22px;height:22px;background:rgba(220,38,38,.9);border-radius:50%;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+.img-info-bar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:4px 6px;display:flex;justify-content:space-between;}
+.img-name{font-size:8px;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.img-size{font-size:8px;color:#a3e635;font-weight:700;flex-shrink:0;}
+.img-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.img-tab{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:.2s;color:var(--sub);}
+.img-tab.active{background:var(--p);color:#fff;border-color:var(--p);}
+.img-drop-box{border:2px dashed #c4b5fd;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#faf5ff;transition:.2s;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.img-drop-box:hover{border-color:var(--p);background:#ede9fe;}
+.img-drop-box.has-img{border-style:solid;border-color:#7c3aed;background:#f5f3ff;padding:10px;cursor:default;}
+.img-drop-preview{width:100%;border-radius:8px;max-height:130px;object-fit:cover;display:block;margin-bottom:8px;}
+/* Ticker */
+.ticker-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;}
+.ticker-text{flex:1;font-size:12px;font-weight:600;}
+.ticker-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px;transition:.2s;}
+.ticker-del:hover{color:var(--r);background:#fef2f2;}
+/* Preview */
+.preview-wrap{background:#0a0a1a;border-radius:16px;overflow:hidden;border:3px solid var(--p);box-shadow:0 8px 30px rgba(124,58,237,.3);}
+.preview-header{background:rgba(255,255,255,.05);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);}
+.preview-screen{height:175px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.preview-content{text-align:center;color:#fff;padding:16px;position:relative;z-index:2;}
+.preview-ticker{background:rgba(124,58,237,.2);padding:6px 14px;font-size:10px;color:rgba(255,255,255,.6);text-align:center;border-top:1px solid rgba(124,58,237,.3);}
+/* Status */
+.status-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat-mini{background:var(--card);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid var(--border);}
+.stat-mini-val{font-size:20px;font-weight:900;color:var(--p);}
+.stat-mini-lbl{font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;}
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e1b4b;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;transition:.4s cubic-bezier(.175,.885,.32,1.275);opacity:0;max-width:90vw;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.toast.ok{background:linear-gradient(135deg,#16a34a,#15803d);}
+.toast.err{background:linear-gradient(135deg,#dc2626,#b91c1c);}
+.toast.info{background:linear-gradient(135deg,#0284c7,#0369a1);}
+/* Modal */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(15,10,40,.65);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:16px;}
+.modal-ov.show{display:flex;}
+.modal{background:#fff;border-radius:20px;padding:22px;width:100%;max-width:570px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:94vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:12px;}
+.modal-foot{display:flex;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+/* Modal Tabs */
+.m-tabs{display:flex;gap:3px;background:#f1f5f9;padding:4px;border-radius:12px;margin-bottom:16px;}
+.m-tab{flex:1;padding:7px 2px;text-align:center;border-radius:9px;font-size:10px;font-weight:700;cursor:pointer;color:var(--sub);transition:.2s;white-space:nowrap;}
+.m-tab.active{background:var(--p);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.3);}
+.m-panel{display:none;} .m-panel.active{display:block;}
+/* Effect cards */
+.effect-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:6px;}
+.effect-card{border:2px solid var(--border);border-radius:10px;padding:9px 4px;text-align:center;cursor:pointer;transition:.2s;background:#f8fafc;}
+.effect-card:hover{border-color:#c4b5fd;} .effect-card.sel{border-color:var(--p);background:#f5f3ff;}
+.ec-icon{font-size:18px;margin-bottom:3px;} .ec-label{font-size:9px;font-weight:700;color:var(--sub);}
+.effect-card.sel .ec-label{color:var(--p);}
+/* BG presets */
+.bg-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px;}
+.bg-sw{width:100%;aspect-ratio:16/9;border-radius:9px;cursor:pointer;border:3px solid transparent;transition:.2s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;}
+.bg-sw.sel{border-color:#1e1b4b;transform:scale(1.06);}
+.bg-sw span{font-size:8px;color:#fff;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.9);background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px;}
+/* Size buttons */
+.size-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+.size-btn{padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;background:#f8fafc;color:var(--sub);font-weight:700;font-size:11px;transition:.2s;}
+.size-btn.sel{border-color:var(--p);background:#f5f3ff;color:var(--p);}
+/* Anim buttons */
+.anim-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px;}
+.anim-btn{border:1.5px solid var(--border);border-radius:9px;padding:7px 3px;text-align:center;cursor:pointer;background:#f8fafc;transition:.2s;}
+.anim-btn:hover{border-color:#c4b5fd;} .anim-btn.sel{border-color:var(--p);background:#f5f3ff;}
+.ab-icon{font-size:16px;} .ab-label{font-size:9px;font-weight:700;color:var(--sub);margin-top:2px;}
+.anim-btn.sel .ab-label{color:var(--p);}
+/* Trans row */
+.trans-row{display:flex;gap:8px;margin-top:6px;}
+.trans-btn{flex:1;padding:8px;border:1.5px solid var(--border);border-radius:9px;text-align:center;cursor:pointer;background:#f8fafc;font-size:11px;font-weight:700;color:var(--sub);transition:.2s;}
+.trans-btn.sel{border-color:var(--p);background:#f5f3ff;color:var(--p);}
+/* Badge styles */
+.badge-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
+.badge-opt{padding:6px 14px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:700;border:2px solid transparent;transition:.2s;}
+.badge-opt.sel{outline:3px solid var(--p);outline-offset:2px;}
+/* Spos */
+.spos-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
+.spos-btn{padding:7px;border:1.5px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;background:#f8fafc;font-size:10px;font-weight:700;color:var(--sub);transition:.2s;}
+.spos-btn.sel{border-color:var(--p);background:#f5f3ff;color:var(--p);}
+/* Color opts */
+.color-opt{width:28px;height:28px;border-radius:8px;cursor:pointer;border:3px solid transparent;transition:.2s;}
+.color-opt.sel{border-color:#1e1b4b;transform:scale(1.1);}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
+/* Range */
+.range-wrap{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.range-wrap input[type=range]{flex:1;accent-color:var(--p);}
+.range-val{font-size:13px;font-weight:700;color:var(--p);min-width:38px;text-align:center;}
+/* Section divider */
+.sdiv{font-size:11px;font-weight:800;color:var(--sub);margin:12px 0 6px;display:flex;align-items:center;gap:8px;}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+/* DB loading */
+.db-loading{position:fixed;inset:0;background:rgba(15,10,40,.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:16px;backdrop-filter:blur(6px);}
+.spin{animation:spin 1s linear infinite;font-size:48px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="db-loading" class="db-loading">
+  <div class="spin">⚙️</div>
+  <div style="font-size:16px;font-weight:700">جارٍ تهيئة IndexedDB...</div>
+  <div style="font-size:12px;opacity:.6">أول مرة قد تأخذ ثانية واحدة</div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-icon">📺</div>
+    <div><div class="topbar-title">لوحة تحكم شاشة الزبون v2</div><div class="topbar-sub">مكتبة حشايشي — Customer Display Admin</div></div>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div><span>متصل بالشاشة</span></div>
+</div>
+
+<div class="container">
+<div>
+  <div class="status-bar">
+    <div class="stat-mini"><div class="stat-mini-val" id="st-slides">0</div><div class="stat-mini-lbl">شرائح</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="st-imgs">0</div><div class="stat-mini-lbl">صورة</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="st-ticker">0</div><div class="stat-mini-lbl">رسالة</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎞️ إدارة الشرائح
+      <button class="btn btn-p btn-sm" onclick="openAddSlide()" style="margin-right:auto">➕ شريحة جديدة</button>
+    </div>
+    <div class="slides-list" id="slides-list"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-g btn-full" onclick="saveAndPush()">💾 حفظ وإرسال للشاشة</button>
+      <button class="btn btn-gray" onclick="previewSlide()" title="معاينة">👁️</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🖼️ مكتبة الصور <div class="idb-badge">⚡ IndexedDB</div>
+      <span style="font-size:10px;color:var(--muted);margin-right:auto" id="img-count-label">0 صورة</span>
+    </div>
+    <div class="storage-meter">
+      <div class="storage-label"><span>💾 حجم الصور</span><span id="storage-text" style="color:var(--p);font-weight:800">0 KB</span></div>
+      <div class="storage-bar"><div class="storage-fill" id="storage-fill" style="width:0%"></div></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:4px">IndexedDB — سعة مئات MB بدون ضغط ✅</div>
+    </div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('img-input').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div style="font-size:40px;margin-bottom:8px">📸</div>
+      <div style="font-size:14px;font-weight:800;color:var(--p)">انقر أو اسحب صوراً هنا</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">جميع الصيغ — جودة أصلية كاملة</div>
+    </div>
+    <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="onImgSelect(event)">
+    <div class="img-preview-grid" id="img-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📢 شريط الأخبار</div>
+    <div id="ticker-list"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="new-ticker" class="input" placeholder="أدخل رسالة جديدة..." style="flex:1">
+      <button class="btn btn-p" onclick="addTicker()">➕ إضافة</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ إعدادات الشاشة</div>
+    <div class="frow">
+      <div class="fg"><label class="label">مدة كل شريحة (ثانية)</label><input id="set-dur" type="number" class="input" value="6" min="3" max="30"></div>
+      <div class="fg"><label class="label">وقت الخمول (ثانية)</label><input id="set-idle" type="number" class="input" value="45" min="10"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="label">اسم المكتبة</label><input id="set-shopname" class="input" value="مكتبة حشايشي"></div>
+      <div class="fg"><label class="label">شعار الترحيب</label><input id="set-welcome" class="input" value="أهلاً بكم"></div>
+    </div>
+    <div class="fg"><label class="label">رسالة تحت الشعار</label><input id="set-sub" class="input" value="مكتبتكم المفضلة — جودة بلا تنازل"></div>
+    <button class="btn btn-g btn-full" onclick="saveAndPush()">💾 تطبيق الإعدادات</button>
+  </div>
+</div>
+
+<div>
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+    <div style="padding:14px 16px;font-size:13px;font-weight:800;border-bottom:1px solid var(--border)">👁️ معاينة مباشرة</div>
+    <div class="preview-wrap" style="border-radius:0;border:none;">
+      <div class="preview-header">
+        <span style="color:rgba(255,255,255,.8);font-size:11px;font-weight:700" id="prev-shopname">📚 مكتبة حشايشي</span>
+        <span style="color:rgba(255,255,255,.4);font-size:10px" id="prev-clock">--:--</span>
+      </div>
+      <div class="preview-screen" id="preview-screen">
+        <div class="preview-content"><div style="font-size:32px;margin-bottom:6px">📚</div>
+          <div style="font-size:17px;font-weight:900" id="prev-welcome">أهلاً بكم</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:5px" id="prev-sub">مكتبتكم المفضلة</div>
+        </div>
+      </div>
+      <div class="preview-ticker" id="preview-ticker">📢 أهلاً بكم</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ إجراءات سريعة</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-p btn-full" onclick="pushNowToDisplay()">📡 إرسال فوري للشاشة</button>
+      <button class="btn btn-out btn-full" onclick="clearDisplayCart()">🧹 مسح السلة من الشاشة</button>
+      <button class="btn btn-gray btn-full" onclick="openDisplayInNewTab()">🔗 فتح شاشة الزبون</button>
+      <button class="btn btn-gray btn-full" onclick="exportConfig()">💾 تصدير الإعدادات</button>
+      <button class="btn btn-gray btn-full" onclick="document.getElementById('import-cfg').click()">📥 استيراد إعدادات</button>
+      <input type="file" id="import-cfg" accept=".json" style="display:none" onchange="importConfig(event)">
+      <button class="btn btn-r btn-full" onclick="clearAllImages()">🗑️ حذف كل الصور</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 حالة الشاشة</div>
+    <div id="display-status" style="font-size:12px;line-height:2;color:var(--sub)">جارٍ التحميل...</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════ SLIDE MODAL ═══════════════ -->
+<div id="m-slide" class="modal-ov" onclick="if(event.target===this)closeModal()">
+<div class="modal">
+  <div class="modal-title" id="slide-modal-title">➕ شريحة جديدة</div>
+  <input type="hidden" id="slide-edit-idx" value="-1">
+
+  <!-- Modal Tabs -->
+  <div class="m-tabs">
+    <div class="m-tab active" id="mtab-content" onclick="switchModalTab('content',this)">📝 المحتوى</div>
+    <div class="m-tab" id="mtab-bg" onclick="switchModalTab('bg',this)">🎨 الخلفية</div>
+    <div class="m-tab" id="mtab-image" onclick="switchModalTab('image',this)">📸 الصورة</div>
+    <div class="m-tab" id="mtab-text" onclick="switchModalTab('text',this)">✍️ النص</div>
+    <div class="m-tab" id="mtab-fx" onclick="switchModalTab('fx',this)">⚡ التأثيرات</div>
+  </div>
+
+  <!-- Panel: Content -->
+  <div id="mpanel-content" class="m-panel active">
+    <div class="fg">
+      <label class="label">نوع الشريحة</label>
+      <select id="slide-type" class="input" onchange="onSlideTypeChange()">
+        <option value="welcome">🏠 ترحيب</option>
+        <option value="promo">🎉 عرض ترويجي</option>
+        <option value="stats">📊 إحصائيات</option>
+        <option value="image">🖼️ صورة إعلانية</option>
+        <option value="custom">✏️ مخصص</option>
+      </select>
+    </div>
+    <div class="fg"><label class="label">العنوان الرئيسي</label><input id="slide-title" class="input" placeholder="مثال: عروض الموسم"></div>
+    <div class="fg"><label class="label">النص التفصيلي</label><textarea id="slide-desc" class="input" rows="2" placeholder="وصف قصير..."></textarea></div>
+    <div class="fg">
+      <label class="label">نص الشارة (اختياري)</label>
+      <input id="slide-badge" class="input" placeholder="🖨️ خدمات الطباعة المتكاملة">
+      <div class="sdiv" style="margin-top:10px">شكل الشارة</div>
+      <div class="badge-row" id="badge-style-row">
+        <div class="badge-opt sel" data-bs="filled" onclick="selBadgeStyle(this)" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;">مملوءة</div>
+        <div class="badge-opt" data-bs="outline" onclick="selBadgeStyle(this)" style="border:2px solid #7c3aed;color:#7c3aed;">حدود</div>
+        <div class="badge-opt" data-bs="neon" onclick="selBadgeStyle(this)" style="border:2px solid #a855f7;color:#a855f7;box-shadow:0 0 10px rgba(168,85,247,.4);">نيون ✨</div>
+        <div class="badge-opt" data-bs="minimal" onclick="selBadgeStyle(this)" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;">زجاجي</div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="label">مدة العرض (ثانية)</label><input id="slide-dur" type="number" class="input" value="6" min="3" max="60"></div>
+      <div class="fg" style="display:flex;align-items:flex-end">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-bottom:6px">
+          <input type="checkbox" id="slide-active" checked style="width:18px;height:18px;accent-color:var(--p)">
+          <span style="font-size:13px;font-weight:700">مفعّلة</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Background -->
+  <div id="mpanel-bg" class="m-panel">
+    <div class="fg">
+      <label class="label">نوع الخلفية</label>
+      <div class="trans-row" id="bg-type-row">
+        <div class="trans-btn sel" data-bgt="gradient" onclick="selBgType(this)">🌈 تدرج</div>
+        <div class="trans-btn" data-bgt="preset" onclick="selBgType(this)">🎨 جاهزة</div>
+        <div class="trans-btn" data-bgt="solid" onclick="selBgType(this)">⬛ لون ثابت</div>
+      </div>
+    </div>
+    <div id="bg-gradient-section">
+      <div class="sdiv">لون التدرج</div>
+      <div class="color-row">
+        <div class="color-opt sel" data-c="purple" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="blue"   style="background:linear-gradient(135deg,#1e40af,#3b82f6)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="green"  style="background:linear-gradient(135deg,#14532d,#16a34a)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="orange" style="background:linear-gradient(135deg,#92400e,#f59e0b)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="pink"   style="background:linear-gradient(135deg,#9d174d,#ec4899)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="teal"   style="background:linear-gradient(135deg,#134e4a,#14b8a6)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="red"    style="background:linear-gradient(135deg,#7f1d1d,#ef4444)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="dark"   style="background:linear-gradient(135deg,#0f172a,#1e293b)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="gold"   style="background:linear-gradient(135deg,#713f12,#eab308)" onclick="selColor(this)"></div>
+        <div class="color-opt" data-c="none"   style="background:transparent;border:2px dashed #9ca3af" onclick="selColor(this)" title="شفاف"></div>
+      </div>
+    </div>
+    <div id="bg-preset-section" style="display:none">
+      <div class="sdiv">خلفيات جاهزة</div>
+      <div class="bg-presets" id="bg-presets-grid"></div>
+    </div>
+    <div id="bg-solid-section" style="display:none">
+      <div class="sdiv">لون مخصص</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <input type="color" id="bg-solid-color" value="#0a0a1a" style="width:50px;height:36px;border:none;border-radius:8px;cursor:pointer;border:1px solid var(--border)" oninput="onBgColorInput()">
+        <input id="bg-solid-hex" class="input" value="#0a0a1a" style="flex:1" oninput="onBgHexInput()">
+      </div>
+    </div>
+    <div class="fg" style="margin-top:14px">
+      <label class="label">شدة تعتيم التظليل على الصورة</label>
+      <div class="range-wrap">
+        <input type="range" id="overlay-opacity" min="0" max="90" value="40" oninput="document.getElementById('overlay-val').textContent=this.value+'%'">
+        <span class="range-val" id="overlay-val">40%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Image -->
+  <div id="mpanel-image" class="m-panel">
+    <div class="fg">
+      <label class="label">الصورة الرئيسية للشريحة</label>
+      <div class="img-tabs">
+        <div class="img-tab active" id="tab-upload" onclick="switchImgTab('upload')">📤 رفع صورة</div>
+        <div class="img-tab" id="tab-library" onclick="switchImgTab('library')">🗂️ من المكتبة</div>
+      </div>
+      <div id="img-tab-upload">
+        <div id="slide-drop-box" class="img-drop-box" onclick="document.getElementById('slide-img-file').click()">
+          <div style="font-size:32px;margin-bottom:6px">🖼️</div>
+          <div style="font-size:12px;font-weight:700;color:var(--p)">انقر لاختيار صورة</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">جودة كاملة — IndexedDB</div>
+        </div>
+        <input type="file" id="slide-img-file" accept="image/*" style="display:none" onchange="onSlideImgUpload(event)">
+      </div>
+      <div id="img-tab-library" style="display:none">
+        <select id="slide-img-sel" class="input" onchange="onImgSelChange()"></select>
+        <div id="slide-img-preview" style="margin-top:8px;border-radius:10px;overflow:hidden;max-height:120px;"></div>
+      </div>
+    </div>
+
+    <div class="sdiv">🎬 تأثير حركة الصورة (سينمائي)</div>
+    <div class="effect-grid" id="img-effect-grid">
+      <div class="effect-card sel" data-ie="kenburns" onclick="selImgEffect(this)"><div class="ec-icon">🎬</div><div class="ec-label">Ken Burns</div></div>
+      <div class="effect-card" data-ie="zoom-in" onclick="selImgEffect(this)"><div class="ec-icon">🔍</div><div class="ec-label">تقريب</div></div>
+      <div class="effect-card" data-ie="zoom-out" onclick="selImgEffect(this)"><div class="ec-icon">🔎</div><div class="ec-label">تبعيد</div></div>
+      <div class="effect-card" data-ie="pan-left" onclick="selImgEffect(this)"><div class="ec-icon">⬅️</div><div class="ec-label">تحريك يسار</div></div>
+      <div class="effect-card" data-ie="pan-right" onclick="selImgEffect(this)"><div class="ec-icon">➡️</div><div class="ec-label">تحريك يمين</div></div>
+      <div class="effect-card" data-ie="static" onclick="selImgEffect(this)"><div class="ec-icon">🖼️</div><div class="ec-label">ثابت</div></div>
+    </div>
+
+    <div class="sdiv" style="margin-top:14px">🖼️ صورة صغيرة داخل الشريحة (ديكور)</div>
+    <div class="fg">
+      <label class="label">اختر من المكتبة</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="small-img-sel" class="input" style="flex:1" onchange="onSmallImgChange()">
+          <option value="">— بلا —</option>
+        </select>
+        <div id="small-img-dot" style="width:42px;height:42px;border-radius:8px;background:#e2e8f0;overflow:hidden;flex-shrink:0;border:1px solid var(--border)"></div>
+      </div>
+    </div>
+    <div id="small-img-options" style="display:none">
+      <label class="label">موضع الصورة الصغيرة</label>
+      <div class="spos-grid">
+        <div class="spos-btn sel" data-sp="tr" onclick="selSmallImgPos(this)">↗ أعلى يسار</div>
+        <div class="spos-btn" data-sp="tl" onclick="selSmallImgPos(this)">↖ أعلى يمين</div>
+        <div class="spos-btn" data-sp="br" onclick="selSmallImgPos(this)">↘ أسفل يسار</div>
+        <div class="spos-btn" data-sp="bl" onclick="selSmallImgPos(this)">↙ أسفل يمين</div>
+      </div>
+      <div class="fg" style="margin-top:10px">
+        <label class="label">الحجم</label>
+        <div class="size-btns" id="simg-size-btns">
+          <div class="size-btn" data-ss="60" onclick="selSmallSz(this)">60px</div>
+          <div class="size-btn sel" data-ss="100" onclick="selSmallSz(this)">100px</div>
+          <div class="size-btn" data-ss="160" onclick="selSmallSz(this)">160px</div>
+          <div class="size-btn" data-ss="220" onclick="selSmallSz(this)">220px</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="label">شكل الصورة الصغيرة</label>
+        <div class="trans-row">
+          <div class="trans-btn sel" data-sishape="rounded" onclick="selSiShape(this)">◼ مستطيل</div>
+          <div class="trans-btn" data-sishape="circle" onclick="selSiShape(this)">⬤ دائرة</div>
+          <div class="trans-btn" data-sishape="free" onclick="selSiShape(this)">🖼️ حر</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Text -->
+  <div id="mpanel-text" class="m-panel">
+    <div class="sdiv">تحريك العنوان عند الدخول</div>
+    <div class="anim-grid" id="title-anim-grid">
+      <div class="anim-btn" data-ta="none" onclick="selTA(this)"><div class="ab-icon">➖</div><div class="ab-label">بلا</div></div>
+      <div class="anim-btn sel" data-ta="fade-up" onclick="selTA(this)"><div class="ab-icon">⬆️</div><div class="ab-label">طفو</div></div>
+      <div class="anim-btn" data-ta="typewriter" onclick="selTA(this)"><div class="ab-icon">⌨️</div><div class="ab-label">آلة كاتبة</div></div>
+      <div class="anim-btn" data-ta="slide-right" onclick="selTA(this)"><div class="ab-icon">↩️</div><div class="ab-label">انزلاق</div></div>
+      <div class="anim-btn" data-ta="bounce" onclick="selTA(this)"><div class="ab-icon">🏀</div><div class="ab-label">ارتداد</div></div>
+      <div class="anim-btn" data-ta="zoom-in" onclick="selTA(this)"><div class="ab-icon">💥</div><div class="ab-label">تكبير</div></div>
+      <div class="anim-btn" data-ta="glow" onclick="selTA(this)"><div class="ab-icon">✨</div><div class="ab-label">توهج</div></div>
+      <div class="anim-btn" data-ta="flip" onclick="selTA(this)"><div class="ab-icon">🔄</div><div class="ab-label">قلب</div></div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">تحريك النص التفصيلي</div>
+    <div class="anim-grid" id="desc-anim-grid">
+      <div class="anim-btn" data-da="none" onclick="selDA(this)"><div class="ab-icon">➖</div><div class="ab-label">بلا</div></div>
+      <div class="anim-btn sel" data-da="fade-up" onclick="selDA(this)"><div class="ab-icon">⬆️</div><div class="ab-label">طفو</div></div>
+      <div class="anim-btn" data-da="slide-right" onclick="selDA(this)"><div class="ab-icon">↩️</div><div class="ab-label">انزلاق</div></div>
+      <div class="anim-btn" data-da="fade" onclick="selDA(this)"><div class="ab-icon">🌫️</div><div class="ab-label">تلاشي</div></div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">حجم العنوان</div>
+    <div class="size-btns" id="title-size-btns">
+      <div class="size-btn" data-ts="xs" onclick="selTS(this)">XS صغير جداً</div>
+      <div class="size-btn" data-ts="sm" onclick="selTS(this)">S صغير</div>
+      <div class="size-btn" data-ts="md" onclick="selTS(this)">M متوسط</div>
+      <div class="size-btn sel" data-ts="lg" onclick="selTS(this)">L كبير</div>
+      <div class="size-btn" data-ts="xl" onclick="selTS(this)">XL كبير جداً</div>
+      <div class="size-btn" data-ts="xxl" onclick="selTS(this)">XXL عملاق</div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">حجم النص التفصيلي</div>
+    <div class="size-btns" id="desc-size-btns">
+      <div class="size-btn" data-ds="xs" onclick="selDS(this)">XS</div>
+      <div class="size-btn" data-ds="sm" onclick="selDS(this)">S</div>
+      <div class="size-btn sel" data-ds="md" onclick="selDS(this)">M</div>
+      <div class="size-btn" data-ds="lg" onclick="selDS(this)">L</div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">محاذاة النص</div>
+    <div class="trans-row" id="align-row">
+      <div class="trans-btn sel" data-align="center" onclick="selAlign(this)">↔ وسط</div>
+      <div class="trans-btn" data-align="right" onclick="selAlign(this)">← يمين</div>
+      <div class="trans-btn" data-align="left" onclick="selAlign(this)">→ يسار</div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">لون النص</div>
+    <div class="trans-row" id="text-color-row">
+      <div class="trans-btn sel" data-tc="white" onclick="selTextColor(this)">⬜ أبيض</div>
+      <div class="trans-btn" data-tc="gold" onclick="selTextColor(this)" style="color:#f59e0b">🟡 ذهبي</div>
+      <div class="trans-btn" data-tc="purple" onclick="selTextColor(this)" style="color:#a855f7">🟣 بنفسجي</div>
+      <div class="trans-btn" data-tc="gradient" onclick="selTextColor(this)">🌈 متدرج</div>
+    </div>
+  </div>
+
+  <!-- Panel: Effects -->
+  <div id="mpanel-fx" class="m-panel">
+    <div class="sdiv">تأثير الانتقال بين الشرائح</div>
+    <div class="anim-grid" id="trans-effect-grid">
+      <div class="anim-btn sel" data-trans="fade" onclick="selTrans(this)"><div class="ab-icon">🌫️</div><div class="ab-label">تلاشي</div></div>
+      <div class="anim-btn" data-trans="slide-up" onclick="selTrans(this)"><div class="ab-icon">⬆️</div><div class="ab-label">انزلاق فوق</div></div>
+      <div class="anim-btn" data-trans="slide-left" onclick="selTrans(this)"><div class="ab-icon">⬅️</div><div class="ab-label">انزلاق يسار</div></div>
+      <div class="anim-btn" data-trans="zoom" onclick="selTrans(this)"><div class="ab-icon">🔍</div><div class="ab-label">تكبير</div></div>
+      <div class="anim-btn" data-trans="flip" onclick="selTrans(this)"><div class="ab-icon">🔄</div><div class="ab-label">قلب</div></div>
+      <div class="anim-btn" data-trans="blur" onclick="selTrans(this)"><div class="ab-icon">💨</div><div class="ab-label">ضبابي</div></div>
+      <div class="anim-btn" data-trans="wipe" onclick="selTrans(this)"><div class="ab-icon">🧹</div><div class="ab-label">كشف</div></div>
+      <div class="anim-btn" data-trans="none" onclick="selTrans(this)"><div class="ab-icon">⚡</div><div class="ab-label">فوري</div></div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">تأثيرات إضافية على الشريحة</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-particles" style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">✨ جسيمات متطايرة (particles)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-scanlines" style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">📺 خطوط مسح تلفزيوني</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-glitch" style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">⚡ تأثير Glitch (تشويش)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-vignette" checked style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">🌑 تأثير Vignette (إظلام الحواف)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-grid" style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">🔲 شبكة خلفية متحركة</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:#f8fafc">
+        <input type="checkbox" id="fx-countdown" style="width:16px;height:16px;accent-color:var(--p)">
+        <span style="font-size:12px;font-weight:700">⏱️ عداد تنازلي للعروض</span>
+      </label>
+    </div>
+
+    <div id="countdown-options" style="display:none;margin-top:10px;padding:12px;background:#f8fafc;border-radius:12px;border:1px solid var(--border)">
+      <div class="fg"><label class="label">تاريخ انتهاء العرض</label><input type="datetime-local" id="fx-countdown-date" class="input"></div>
+      <div class="fg"><label class="label">نص العداد</label><input id="fx-countdown-label" class="input" value="ينتهي العرض خلال:"></div>
+    </div>
+
+    <div class="sdiv" style="margin-top:12px">سرعة التحريكات</div>
+    <div class="range-wrap">
+      <input type="range" id="anim-speed" min="1" max="5" value="3" oninput="document.getElementById('anim-speed-val').textContent=['بطيء جداً','بطيء','عادي','سريع','سريع جداً'][this.value-1]">
+      <span class="range-val" id="anim-speed-val" style="min-width:80px;font-size:11px">عادي</span>
+    </div>
+  </div>
+
+  <div class="modal-foot">
+    <button class="btn btn-g" style="flex:1" onclick="saveSlide()">💾 حفظ الشريحة</button>
+    <button class="btn btn-gray" onclick="closeModal()">إلغاء</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════ IndexedDB ════════════
+var DB_NAME='hashayshi_pos_db', DB_VER=2, STORE='images', db=null;
+function initDB(cb){
+  var req=indexedDB.open(DB_NAME,DB_VER);
+  req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains(STORE))e.target.result.createObjectStore(STORE,{keyPath:'id'});};
+  req.onsuccess=function(e){db=e.target.result;cb(null);};
+  req.onerror=function(e){cb(e.target.error);};
+}
+function idbPut(r,cb){var tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(r);tx.oncomplete=function(){cb(null);};tx.onerror=function(e){cb(e.target.error);};}
+function idbGet(id,cb){var req=db.transaction(STORE,'readonly').objectStore(STORE).get(id);req.onsuccess=function(e){cb(null,e.target.result||null);};req.onerror=function(e){cb(e.target.error,null);};}
+function idbGetAll(cb){var req=db.transaction(STORE,'readonly').objectStore(STORE).getAll();req.onsuccess=function(e){cb(null,e.target.result||[]);};req.onerror=function(e){cb(e.target.error,[]);};}
+function idbDelete(id,cb){var tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=function(){cb(null);};tx.onerror=function(e){cb(e.target.error);};}
+function idbClear(cb){var tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=function(){cb(null);};tx.onerror=function(e){cb(e.target.error);};}
+
+// ════════════ STATE ════════════
+var CFG_KEY='hashayshi_display_config';
+var config={
+  shopName:'مكتبة حشايشي',welcomeText:'أهلاً بكم',welcomeSub:'مكتبتكم المفضلة — جودة بلا تنازل',
+  slideDuration:6,idleTimeout:45,
+  slides:[
+    {id:'s1',type:'welcome',title:'أهلاً بكم',desc:'مكتبتكم المفضلة',badge:'',badgeStyle:'filled',color:'purple',bgType:'gradient',bgPreset:'',bgSolid:'',overlayOpacity:40,dur:8,active:true,imageId:null,imgEffect:'kenburns',smallImgId:null,smallImgPos:'tr',smallImgSize:100,smallImgShape:'rounded',titleAnim:'fade-up',descAnim:'fade-up',titleSize:'lg',descSize:'md',textAlign:'center',textColor:'white',transEffect:'fade',fx:{particles:false,scanlines:false,glitch:false,vignette:true,grid:false,countdown:false,countdownDate:'',countdownLabel:''}},
+    {id:'s2',type:'promo',title:'خدمة الطباعة',desc:'طباعة ملونة وأبيض وأسود',badge:'🖨️ خدمات الطباعة',badgeStyle:'filled',color:'blue',bgType:'gradient',dur:6,active:true,imageId:null,imgEffect:'static',smallImgId:null,smallImgPos:'tr',smallImgSize:100,smallImgShape:'rounded',titleAnim:'fade-up',descAnim:'fade-up',titleSize:'lg',descSize:'md',textAlign:'center',textColor:'white',transEffect:'fade',overlayOpacity:40,fx:{particles:false,scanlines:false,glitch:false,vignette:true,grid:false,countdown:false,countdownDate:'',countdownLabel:''}},
+    {id:'s3',type:'stats',title:'إحصائياتنا',desc:'',badge:'',badgeStyle:'filled',color:'green',bgType:'gradient',dur:6,active:true,imageId:null,imgEffect:'static',smallImgId:null,smallImgPos:'tr',smallImgSize:100,smallImgShape:'rounded',titleAnim:'fade-up',descAnim:'fade-up',titleSize:'lg',descSize:'md',textAlign:'center',textColor:'white',transEffect:'fade',overlayOpacity:40,fx:{particles:false,scanlines:false,glitch:false,vignette:true,grid:false,countdown:false,countdownDate:'',countdownLabel:''}},
+    {id:'s4',type:'custom',title:'خدمات الاتصالات',desc:'فليكسي — بطاقات الإنترنت',badge:'📱 شحن جميع الشبكات',badgeStyle:'filled',color:'teal',bgType:'gradient',dur:6,active:true,imageId:null,imgEffect:'static',smallImgId:null,smallImgPos:'tr',smallImgSize:100,smallImgShape:'rounded',titleAnim:'fade-up',descAnim:'fade-up',titleSize:'lg',descSize:'md',textAlign:'center',textColor:'white',transEffect:'fade',overlayOpacity:40,fx:{particles:false,scanlines:false,glitch:false,vignette:true,grid:false,countdown:false,countdownDate:'',countdownLabel:''}}
+  ],
+  ticker:['أهلاً وسهلاً بكم في مكتبة حشايشي','أوسع تشكيلة من اللوازم المدرسية','خدمات الطباعة متاحة بأحسن الأسعار','شحن رصيد جميع الشبكات']
+};
+
+// current editing state
+var pendingSlideImg=null, selectedColor='purple', selectedBgType='gradient';
+var selectedBgPreset='', selectedBgSolid='#0a0a1a';
+var selectedImgEffect='kenburns', selectedTitleAnim='fade-up', selectedDescAnim='fade-up';
+var selectedTitleSize='lg', selectedDescSize='md', selectedTextAlign='center', selectedTextColor='white';
+var selectedTransEffect='fade', selectedBadgeStyle='filled';
+var selectedSmallImgId='', selectedSmallImgPos='tr', selectedSmallImgSize=100, selectedSmallImgShape='rounded';
+var dragIdx=-1;
+
+// ────────────────────────────────────
+// BG Presets
+// ────────────────────────────────────
+var BG_PRESETS=[
+  {id:'cosmos',label:'كوزموس',bg:'radial-gradient(ellipse at 20% 50%,#1a0533 0%,#0d001a 50%,#000 100%)'},
+  {id:'aurora',label:'أورورا',bg:'linear-gradient(135deg,#0f172a 0%,#064e3b 50%,#1e1b4b 100%)'},
+  {id:'sunset',label:'غروب',bg:'linear-gradient(to bottom,#1a0533,#7f1d1d,#92400e)'},
+  {id:'ocean',label:'محيط',bg:'linear-gradient(135deg,#0c4a6e,#1e3a5f,#0a0a2a)'},
+  {id:'forest',label:'غابة',bg:'linear-gradient(135deg,#052e16,#14532d,#1a2e0a)'},
+  {id:'fire',label:'نار',bg:'linear-gradient(to top,#7f1d1d,#b45309,#92400e)'},
+  {id:'neon',label:'نيون',bg:'linear-gradient(135deg,#0f0028,#1a0040,#000020)'},
+  {id:'slate',label:'رمادي',bg:'linear-gradient(135deg,#0f172a,#1e293b,#334155)'},
+  {id:'royal',label:'ملكي',bg:'linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95)'},
+  {id:'midnight',label:'منتصف الليل',bg:'linear-gradient(135deg,#020617,#0f172a,#1e1b4b)'},
+  {id:'crimson',label:'قرمزي',bg:'linear-gradient(135deg,#450a0a,#7f1d1d,#991b1b)'},
+  {id:'teal-deep',label:'فيروزي',bg:'linear-gradient(135deg,#042f2e,#134e4a,#0f766e)'}
+];
+
+// ════════════ Config ════════════
+function loadConfig(){try{var r=localStorage.getItem(CFG_KEY);if(r){var p=JSON.parse(r);if(p.slides)p.slides=p.slides.map(function(s){return Object.assign({badgeStyle:'filled',bgType:'gradient',bgPreset:'',bgSolid:'',overlayOpacity:40,imgEffect:'static',smallImgId:null,smallImgPos:'tr',smallImgSize:100,smallImgShape:'rounded',titleAnim:'fade-up',descAnim:'fade-up',titleSize:'lg',descSize:'md',textAlign:'center',textColor:'white',transEffect:'fade',fx:{particles:false,scanlines:false,glitch:false,vignette:true,grid:false,countdown:false,countdownDate:'',countdownLabel:''}},s);});Object.assign(config,p);}}catch(e){}}
+function saveConfig(){try{localStorage.setItem(CFG_KEY,JSON.stringify(config));}catch(e){}}
+
+// ════════════ Push to display ════════════
+function pushNowToDisplay(){
+  var payload={shopName:config.shopName,welcomeText:config.welcomeText,welcomeSub:config.welcomeSub,slideDuration:config.slideDuration*1000,idleTimeout:config.idleTimeout*1000,slides:config.slides.filter(function(s){return s.active;}),ticker:config.ticker,ts:Date.now()};
+  try{localStorage.setItem('hashayshi_display_full_config',JSON.stringify(payload));toast('✅ تم الإرسال للشاشة','ok');updateStatus();}catch(e){toast('خطأ ❌','err');}
+}
+function saveAndPush(){
+  config.shopName=document.getElementById('set-shopname').value||'مكتبة حشايشي';
+  config.welcomeText=document.getElementById('set-welcome').value||'أهلاً بكم';
+  config.welcomeSub=document.getElementById('set-sub').value||'';
+  config.slideDuration=parseInt(document.getElementById('set-dur').value)||6;
+  config.idleTimeout=parseInt(document.getElementById('set-idle').value)||45;
+  saveConfig();pushNowToDisplay();updatePreview();
+}
+function clearDisplayCart(){localStorage.setItem('hashayshi_display_cart',JSON.stringify({active:false,items:[],total:0}));toast('تم مسح السلة ✅','ok');}
+function openDisplayInNewTab(){toast('افتح display.html في تاب جديد 💡','info',4000);}
+function exportConfig(){
+  idbGetAll(function(err,imgs){
+    var blob=new Blob([JSON.stringify({config:config,images:imgs},null,2)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='display_config_'+Date.now()+'.json';a.click();
+    toast('تم التصدير ✅ ('+imgs.length+' صورة)','ok');
+  });
+}
+function importConfig(e){
+  var file=e.target.files[0];if(!file)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(d.config)Object.assign(config,d.config);
+      if(d.images&&d.images.length){var done=0,total=d.images.length;d.images.forEach(function(img){idbPut(img,function(){if(++done===total){saveConfig();loadImagesAndRender();renderAll();toast('تم الاستيراد ✅','ok');}});});}
+      else{saveConfig();renderAll();toast('تم الاستيراد ✅','ok');}
+    }catch(x){toast('ملف غير صالح ❌','err');}
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+// ════════════ Image Library ════════════
+function loadImagesAndRender(){
+  idbGetAll(function(err,imgs){renderImages(imgs);updateStorageMeter(imgs);document.getElementById('st-imgs').textContent=imgs.length;document.getElementById('img-count-label').textContent=imgs.length+' صورة';});
+}
+function onImgSelect(e){processFiles(Array.from(e.target.files));e.target.value='';}
+function onDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag-over');}
+function onDragLeave(e){document.getElementById('upload-zone').classList.remove('drag-over');}
+function onDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag-over');processFiles(Array.from(e.dataTransfer.files));}
+function processFiles(files){
+  var imgs=files.filter(function(f){return f.type.startsWith('image/');});
+  if(!imgs.length){toast('اختر صوراً صالحة ❌','err');return;}
+  toast('جارٍ الرفع... ⏳','info',60000);
+  var done=0;
+  imgs.forEach(function(file){
+    readAsDataURL(file,function(data){
+      if(!data){done++;return;}
+      var sizeKB=Math.round(data.length*3/4/1024);
+      idbPut({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),name:file.name,data:data,sizeKB:sizeKB,created:Date.now()},function(){if(++done===imgs.length){loadImagesAndRender();toast('✅ تم رفع '+done+' صورة','ok');}});
+    });
+  });
+}
+function readAsDataURL(file,cb){var r=new FileReader();r.onload=function(e){cb(e.target.result);};r.onerror=function(){cb(null);};r.readAsDataURL(file);}
+function renderImages(imgs){
+  var grid=document.getElementById('img-grid');
+  if(!imgs.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:16px;font-size:12px">لا توجد صور — ارفع صوراً إعلانية</div>';return;}
+  grid.innerHTML=imgs.map(function(img){return '<div class="img-thumb-wrap"><img src="'+img.data+'" alt="'+img.name+'" loading="lazy"><button class="img-thumb-del" onclick="delImage(\''+img.id+'\')">✕</button><div class="img-info-bar"><span class="img-name">'+img.name+'</span><span class="img-size">'+img.sizeKB+'K</span></div></div>';}).join('');
+}
+function delImage(id){if(!confirm('حذف هذه الصورة نهائياً؟'))return;idbDelete(id,function(){config.slides.forEach(function(s){if(s.imageId===id)s.imageId=null;if(s.smallImgId===id)s.smallImgId=null;});saveConfig();loadImagesAndRender();renderSlides();toast('تم الحذف ✅','ok');}); }
+function clearAllImages(){if(!confirm('حذف كل الصور؟'))return;idbClear(function(){config.slides.forEach(function(s){s.imageId=null;s.smallImgId=null;});saveConfig();loadImagesAndRender();renderSlides();toast('تم حذف كل الصور ✅','ok');}); }
+function updateStorageMeter(imgs){
+  var totalKB=imgs.reduce(function(s,i){return s+(i.sizeKB||0);},0);
+  document.getElementById('storage-text').textContent=totalKB>1024?(totalKB/1024).toFixed(1)+' MB':totalKB+' KB';
+  document.getElementById('storage-fill').style.width=Math.min(totalKB/(200*1024)*100,100)+'%';
+}
+
+// ════════════ Slides ════════════
+var TL={welcome:'ترحيب',promo:'عرض',stats:'إحصائيات',image:'صورة',custom:'مخصص'};
+var TC={welcome:'sb-welcome',promo:'sb-promo',stats:'sb-stats',image:'sb-image',custom:'sb-custom'};
+var TI={welcome:'🏠',promo:'🎉',stats:'📊',image:'🖼️',custom:'✏️'};
+
+function renderSlides(){
+  var el=document.getElementById('slides-list');
+  if(!config.slides.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">لا توجد شرائح</div>';document.getElementById('st-slides').textContent='0';return;}
+  var pending=config.slides.length, parts=config.slides.map(function(){return'';});
+  config.slides.forEach(function(s,i){
+    var build=function(thumbHtml){
+      var fxPills='';
+      if(s.fx&&s.fx.particles)fxPills+='<span class="fx-pill">particles</span>';
+      if(s.fx&&s.fx.glitch)fxPills+='<span class="fx-pill">glitch</span>';
+      if(s.imgEffect&&s.imgEffect!=='static')fxPills+='<span class="anim-pill">'+s.imgEffect+'</span>';
+      if(s.titleAnim&&s.titleAnim!=='none')fxPills+='<span class="anim-pill">'+s.titleAnim+'</span>';
+      parts[i]='<div class="slide-item'+(s.active?'':' disabled')+'" draggable="true" data-idx="'+i+'" ondragstart="dragStart(event,'+i+')" ondragover="dragOver(event,'+i+')" ondrop="dropSlide(event,'+i+')">'+
+        '<span class="slide-drag">⠿</span>'+thumbHtml+
+        '<div class="slide-info"><span class="slide-type-badge '+TC[s.type]+'">'+TL[s.type]+'</span><div class="slide-title-text">'+s.title+'</div>'+
+        '<div class="slide-dur">⏱️ '+s.dur+'ث '+fxPills+'</div></div>'+
+        '<div class="slide-actions">'+
+          '<button class="ic-btn ic-toggle'+(s.active?'':' off')+'" onclick="toggleSlide('+i+')">'+(s.active?'✅':'⭕')+'</button>'+
+          '<button class="ic-btn ic-edit" onclick="openEditSlide('+i+')">✏️</button>'+
+          '<button class="ic-btn ic-del" onclick="delSlide('+i+')">🗑️</button>'+
+        '</div></div>';
+      if(--pending===0)el.innerHTML=parts.join('');
+    };
+    if(s.type==='image'&&s.imageId){idbGet(s.imageId,function(err,img){build(img?'<div class="slide-thumb"><img src="'+img.data+'" alt=""></div>':'<div class="slide-thumb">🖼️</div>');});}
+    else build('<div class="slide-thumb" style="font-size:20px">'+TI[s.type]+'</div>');
+  });
+  document.getElementById('st-slides').textContent=config.slides.length;
+}
+function toggleSlide(i){config.slides[i].active=!config.slides[i].active;saveConfig();renderSlides();}
+function delSlide(i){if(!confirm('حذف هذه الشريحة؟'))return;config.slides.splice(i,1);saveConfig();renderSlides();toast('تم الحذف ✅','ok');}
+function dragStart(e,i){dragIdx=i;e.dataTransfer.effectAllowed='move';}
+function dragOver(e,i){e.preventDefault();}
+function dropSlide(e,i){e.preventDefault();if(dragIdx<0||dragIdx===i)return;config.slides.splice(i,0,config.slides.splice(dragIdx,1)[0]);dragIdx=-1;saveConfig();renderSlides();}
+
+// ════════════ Modal ════════════
+function switchModalTab(tab,el){
+  document.querySelectorAll('.m-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.m-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('mpanel-'+tab).classList.add('active');
+  el.classList.add('active');
+  if(tab==='image'){refreshLibSel();refreshSmallImgSel();}
+  if(tab==='bg'){buildBgPresets();}
+}
+
+function openAddSlide(){
+  document.getElementById('slide-modal-title').textContent='➕ شريحة جديدة';
+  document.getElementById('slide-edit-idx').value='-1';
+  document.getElementById('slide-type').value='welcome';
+  document.getElementById('slide-title').value='';
+  document.getElementById('slide-desc').value='';
+  document.getElementById('slide-badge').value='';
+  document.getElementById('slide-dur').value='6';
+  document.getElementById('slide-active').checked=true;
+  document.getElementById('overlay-opacity').value=40;
+  document.getElementById('overlay-val').textContent='40%';
+  document.getElementById('anim-speed').value=3;
+  document.getElementById('anim-speed-val').textContent='عادي';
+  document.getElementById('fx-particles').checked=false;
+  document.getElementById('fx-scanlines').checked=false;
+  document.getElementById('fx-glitch').checked=false;
+  document.getElementById('fx-vignette').checked=true;
+  document.getElementById('fx-grid').checked=false;
+  document.getElementById('fx-countdown').checked=false;
+  document.getElementById('countdown-options').style.display='none';
+  pendingSlideImg=null;
+  selectedColor='purple';selectedBgType='gradient';selectedBgPreset='';selectedBgSolid='#0a0a1a';
+  selectedImgEffect='kenburns';selectedTitleAnim='fade-up';selectedDescAnim='fade-up';
+  selectedTitleSize='lg';selectedDescSize='md';selectedTextAlign='center';selectedTextColor='white';
+  selectedTransEffect='fade';selectedBadgeStyle='filled';
+  selectedSmallImgId='';selectedSmallImgPos='tr';selectedSmallImgSize=100;selectedSmallImgShape='rounded';
+  resetAllSelections();resetDropBox();onSlideTypeChange();switchImgTab('upload');
+  switchModalTab('content',document.getElementById('mtab-content'));
+  document.getElementById('m-slide').classList.add('show');
+}
+
+function openEditSlide(i){
+  var s=config.slides[i];
+  document.getElementById('slide-modal-title').textContent='✏️ تعديل الشريحة';
+  document.getElementById('slide-edit-idx').value=i;
+  document.getElementById('slide-type').value=s.type;
+  document.getElementById('slide-title').value=s.title;
+  document.getElementById('slide-desc').value=s.desc||'';
+  document.getElementById('slide-badge').value=s.badge||'';
+  document.getElementById('slide-dur').value=s.dur||6;
+  document.getElementById('slide-active').checked=s.active!==false;
+  document.getElementById('overlay-opacity').value=s.overlayOpacity||40;
+  document.getElementById('overlay-val').textContent=(s.overlayOpacity||40)+'%';
+  var fx=s.fx||{};
+  document.getElementById('fx-particles').checked=!!fx.particles;
+  document.getElementById('fx-scanlines').checked=!!fx.scanlines;
+  document.getElementById('fx-glitch').checked=!!fx.glitch;
+  document.getElementById('fx-vignette').checked=fx.vignette!==false;
+  document.getElementById('fx-grid').checked=!!fx.grid;
+  document.getElementById('fx-countdown').checked=!!fx.countdown;
+  document.getElementById('countdown-options').style.display=fx.countdown?'block':'none';
+  if(fx.countdownDate)document.getElementById('fx-countdown-date').value=fx.countdownDate;
+  if(fx.countdownLabel)document.getElementById('fx-countdown-label').value=fx.countdownLabel||'ينتهي العرض خلال:';
+  pendingSlideImg=null;
+  selectedColor=s.color||'purple';selectedBgType=s.bgType||'gradient';
+  selectedBgPreset=s.bgPreset||'';selectedBgSolid=s.bgSolid||'#0a0a1a';
+  selectedImgEffect=s.imgEffect||'static';selectedTitleAnim=s.titleAnim||'fade-up';
+  selectedDescAnim=s.descAnim||'fade-up';selectedTitleSize=s.titleSize||'lg';
+  selectedDescSize=s.descSize||'md';selectedTextAlign=s.textAlign||'center';
+  selectedTextColor=s.textColor||'white';selectedTransEffect=s.transEffect||'fade';
+  selectedBadgeStyle=s.badgeStyle||'filled';
+  selectedSmallImgId=s.smallImgId||'';selectedSmallImgPos=s.smallImgPos||'tr';
+  selectedSmallImgSize=s.smallImgSize||100;selectedSmallImgShape=s.smallImgShape||'rounded';
+  resetAllSelections();resetDropBox();onSlideTypeChange();switchImgTab('upload');
+  switchModalTab('content',document.getElementById('mtab-content'));
+  if(s.type==='image'&&s.imageId){idbGet(s.imageId,function(err,img){if(img){pendingSlideImg={id:img.id,name:img.name,data:img.data,sizeKB:img.sizeKB};showDropPreview(img.data,img.name,img.sizeKB);}});}
+  document.getElementById('m-slide').classList.add('show');
+}
+
+function resetAllSelections(){
+  // color
+  document.querySelectorAll('.color-opt').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-c')===selectedColor);});
+  // bg type
+  document.querySelectorAll('[data-bgt]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-bgt')===selectedBgType);});
+  updateBgSections();
+  // img effect
+  document.querySelectorAll('[data-ie]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-ie')===selectedImgEffect);});
+  // title anim
+  document.querySelectorAll('[data-ta]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-ta')===selectedTitleAnim);});
+  // desc anim
+  document.querySelectorAll('[data-da]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-da')===selectedDescAnim);});
+  // title size
+  document.querySelectorAll('[data-ts]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-ts')===selectedTitleSize);});
+  // desc size
+  document.querySelectorAll('[data-ds]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-ds')===selectedDescSize);});
+  // align
+  document.querySelectorAll('[data-align]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-align')===selectedTextAlign);});
+  // text color
+  document.querySelectorAll('[data-tc]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-tc')===selectedTextColor);});
+  // trans effect
+  document.querySelectorAll('[data-trans]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-trans')===selectedTransEffect);});
+  // badge style
+  document.querySelectorAll('[data-bs]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-bs')===selectedBadgeStyle);});
+  // small img pos/size/shape
+  document.querySelectorAll('[data-sp]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-sp')===selectedSmallImgPos);});
+  document.querySelectorAll('[data-ss]').forEach(function(e){e.classList.toggle('sel',parseInt(e.getAttribute('data-ss'))===selectedSmallImgSize);});
+  document.querySelectorAll('[data-sishape]').forEach(function(e){e.classList.toggle('sel',e.getAttribute('data-sishape')===selectedSmallImgShape);});
+}
+
+function saveSlide(){
+  var i=parseInt(document.getElementById('slide-edit-idx').value);
+  var type=document.getElementById('slide-type').value;
+  var imageId=null;
+  if(type==='image'){
+    var isLib=document.getElementById('img-tab-library').style.display!=='none';
+    if(isLib){imageId=document.getElementById('slide-img-sel').value||null;}
+    else if(pendingSlideImg){idbPut({id:pendingSlideImg.id,name:pendingSlideImg.name,data:pendingSlideImg.data,sizeKB:pendingSlideImg.sizeKB,created:Date.now()},function(){loadImagesAndRender();});imageId=pendingSlideImg.id;}
+  }
+  var fx={
+    particles:document.getElementById('fx-particles').checked,
+    scanlines:document.getElementById('fx-scanlines').checked,
+    glitch:document.getElementById('fx-glitch').checked,
+    vignette:document.getElementById('fx-vignette').checked,
+    grid:document.getElementById('fx-grid').checked,
+    countdown:document.getElementById('fx-countdown').checked,
+    countdownDate:document.getElementById('fx-countdown-date').value,
+    countdownLabel:document.getElementById('fx-countdown-label').value
+  };
+  var slide={
+    id:i>=0?config.slides[i].id:'s'+Date.now(),
+    type:type,title:document.getElementById('slide-title').value||'شريحة جديدة',
+    desc:document.getElementById('slide-desc').value,badge:document.getElementById('slide-badge').value,
+    badgeStyle:selectedBadgeStyle,color:selectedColor,
+    bgType:selectedBgType,bgPreset:selectedBgPreset,bgSolid:selectedBgSolid,
+    overlayOpacity:parseInt(document.getElementById('overlay-opacity').value)||40,
+    dur:parseInt(document.getElementById('slide-dur').value)||6,
+    active:document.getElementById('slide-active').checked,
+    imageId:imageId,imgEffect:selectedImgEffect,
+    smallImgId:selectedSmallImgId||null,smallImgPos:selectedSmallImgPos,
+    smallImgSize:selectedSmallImgSize,smallImgShape:selectedSmallImgShape,
+    titleAnim:selectedTitleAnim,descAnim:selectedDescAnim,
+    titleSize:selectedTitleSize,descSize:selectedDescSize,
+    textAlign:selectedTextAlign,textColor:selectedTextColor,
+    transEffect:selectedTransEffect,fx:fx
+  };
+  if(i>=0)config.slides[i]=slide;else config.slides.push(slide);
+  pendingSlideImg=null;saveConfig();renderSlides();closeModal();
+  toast((i>=0?'تم التعديل':'تمت الإضافة')+' ✅','ok');
+}
+
+function closeModal(){document.getElementById('m-slide').classList.remove('show');pendingSlideImg=null;}
+
+function onSlideTypeChange(){
+  // no hide/show for now — all panels accessible via tabs
+}
+
+// ── Selectors ──
+function selColor(el){document.querySelectorAll('.color-opt').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedColor=el.getAttribute('data-c');}
+function selBgType(el){document.querySelectorAll('[data-bgt]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedBgType=el.getAttribute('data-bgt');updateBgSections();}
+function updateBgSections(){
+  document.getElementById('bg-gradient-section').style.display=selectedBgType==='gradient'?'block':'none';
+  document.getElementById('bg-preset-section').style.display=selectedBgType==='preset'?'block':'none';
+  document.getElementById('bg-solid-section').style.display=selectedBgType==='solid'?'block':'none';
+}
+function buildBgPresets(){
+  var g=document.getElementById('bg-presets-grid');
+  g.innerHTML=BG_PRESETS.map(function(p){return '<div class="bg-sw'+(selectedBgPreset===p.id?' sel':'')+'" style="background:'+p.bg+'" data-pid="'+p.id+'" onclick="selBgPreset(this)"><span>'+p.label+'</span></div>';}).join('');
+}
+function selBgPreset(el){document.querySelectorAll('.bg-sw').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedBgPreset=el.getAttribute('data-pid');}
+function onBgColorInput(){var v=document.getElementById('bg-solid-color').value;document.getElementById('bg-solid-hex').value=v;selectedBgSolid=v;}
+function onBgHexInput(){var v=document.getElementById('bg-solid-hex').value;if(/^#[0-9a-fA-F]{6}$/.test(v)){document.getElementById('bg-solid-color').value=v;selectedBgSolid=v;}}
+function selImgEffect(el){document.querySelectorAll('[data-ie]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedImgEffect=el.getAttribute('data-ie');}
+function selTA(el){document.querySelectorAll('[data-ta]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedTitleAnim=el.getAttribute('data-ta');}
+function selDA(el){document.querySelectorAll('[data-da]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedDescAnim=el.getAttribute('data-da');}
+function selTS(el){document.querySelectorAll('[data-ts]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedTitleSize=el.getAttribute('data-ts');}
+function selDS(el){document.querySelectorAll('[data-ds]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedDescSize=el.getAttribute('data-ds');}
+function selAlign(el){document.querySelectorAll('[data-align]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedTextAlign=el.getAttribute('data-align');}
+function selTextColor(el){document.querySelectorAll('[data-tc]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedTextColor=el.getAttribute('data-tc');}
+function selTrans(el){document.querySelectorAll('[data-trans]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedTransEffect=el.getAttribute('data-trans');}
+function selBadgeStyle(el){document.querySelectorAll('[data-bs]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedBadgeStyle=el.getAttribute('data-bs');}
+function selSmallImgPos(el){document.querySelectorAll('[data-sp]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedSmallImgPos=el.getAttribute('data-sp');}
+function selSmallSz(el){document.querySelectorAll('[data-ss]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedSmallImgSize=parseInt(el.getAttribute('data-ss'));}
+function selSiShape(el){document.querySelectorAll('[data-sishape]').forEach(function(e){e.classList.remove('sel');});el.classList.add('sel');selectedSmallImgShape=el.getAttribute('data-sishape');}
+
+// ── FX countdown toggle ──
+document.getElementById('fx-countdown').onchange=function(){document.getElementById('countdown-options').style.display=this.checked?'block':'none';};
+
+// ── Image tabs in modal ──
+function switchImgTab(tab){
+  var isUp=tab==='upload';
+  document.getElementById('img-tab-upload').style.display=isUp?'block':'none';
+  document.getElementById('img-tab-library').style.display=isUp?'none':'block';
+  document.getElementById('tab-upload').className='img-tab'+(isUp?' active':'');
+  document.getElementById('tab-library').className='img-tab'+(isUp?''  :' active');
+}
+function onSlideImgUpload(e){
+  var file=e.target.files[0];if(!file||!file.type.startsWith('image/')){toast('اختر صورة ❌','err');return;}
+  e.target.value='';toast('جارٍ التحميل... ⏳','info',10000);
+  readAsDataURL(file,function(data){
+    if(!data){toast('فشل ❌','err');return;}
+    var sizeKB=Math.round(data.length*3/4/1024);
+    pendingSlideImg={id:'img'+Date.now()+Math.random().toString(36).slice(2,5),name:file.name,data:data,sizeKB:sizeKB};
+    showDropPreview(data,file.name,sizeKB);toast('جاهزة! '+sizeKB+' KB ✅','ok');
+  });
+}
+function showDropPreview(data,name,sizeKB){
+  var box=document.getElementById('slide-drop-box');
+  box.classList.add('has-img');box.onclick=null;
+  box.innerHTML='<img class="img-drop-preview" src="'+data+'" alt=""><div style="font-size:10px;color:var(--sub);margin-bottom:6px">📦 '+sizeKB+' KB — '+name+'</div><button style="width:100%;padding:5px;border-radius:8px;border:none;background:#fef2f2;color:var(--r);font-size:11px;font-weight:700;cursor:pointer" onclick="clearDropBox(event)">🗑️ إزالة</button>';
+}
+function clearDropBox(e){if(e)e.stopPropagation();pendingSlideImg=null;resetDropBox();}
+function resetDropBox(){
+  var box=document.getElementById('slide-drop-box');if(!box)return;
+  box.classList.remove('has-img');
+  box.innerHTML='<div style="font-size:32px;margin-bottom:6px">🖼️</div><div style="font-size:12px;font-weight:700;color:var(--p)">انقر لاختيار صورة</div><div style="font-size:10px;color:var(--muted);margin-top:3px">تُحفظ في IndexedDB</div>';
+  box.onclick=function(){document.getElementById('slide-img-file').click();};
+}
+function refreshLibSel(){
+  idbGetAll(function(err,imgs){
+    var sel=document.getElementById('slide-img-sel');
+    sel.innerHTML=imgs.length?imgs.map(function(i){return'<option value="'+i.id+'">'+i.name+' ('+i.sizeKB+' KB)</option>';}).join(''):'<option value="">لا توجد صور</option>';
+    onImgSelChange();
+  });
+}
+function onImgSelChange(){
+  var id=document.getElementById('slide-img-sel').value;
+  if(!id){document.getElementById('slide-img-preview').innerHTML='';return;}
+  idbGet(id,function(err,img){document.getElementById('slide-img-preview').innerHTML=img?'<img src="'+img.data+'" style="width:100%;border-radius:8px;max-height:120px;object-fit:cover">':'';});
+}
+function refreshSmallImgSel(){
+  idbGetAll(function(err,imgs){
+    var sel=document.getElementById('small-img-sel');
+    sel.innerHTML='<option value="">— بلا —</option>'+(imgs.length?imgs.map(function(i){return'<option value="'+i.id+'"'+(i.id===selectedSmallImgId?' selected':'')+'>'+i.name+'</option>';}).join(''):'');
+    onSmallImgChange();
+  });
+}
+function onSmallImgChange(){
+  var id=document.getElementById('small-img-sel').value;
+  selectedSmallImgId=id;
+  var dot=document.getElementById('small-img-dot');
+  var opts=document.getElementById('small-img-options');
+  if(!id){dot.innerHTML='';opts.style.display='none';return;}
+  opts.style.display='block';
+  idbGet(id,function(err,img){dot.innerHTML=img?'<img src="'+img.data+'" style="width:100%;height:100%;object-fit:cover">':'';});
+}
+
+// ════════════ Ticker ════════════
+function renderTicker(){
+  var el=document.getElementById('ticker-list');
+  el.innerHTML=config.ticker.map(function(t,i){return'<div class="ticker-item"><span class="ticker-text">'+t+'</span><button class="ticker-del" onclick="delTicker('+i+')">✕</button></div>';}).join('')||'<div style="color:var(--muted);font-size:12px;padding:8px">لا توجد رسائل</div>';
+  document.getElementById('st-ticker').textContent=config.ticker.length;
+  document.getElementById('preview-ticker').textContent='📢 '+config.ticker.join(' ✦ ');
+}
+function addTicker(){var v=document.getElementById('new-ticker').value.trim();if(!v){toast('أدخل نص الرسالة ❌','err');return;}config.ticker.push(v);document.getElementById('new-ticker').value='';saveConfig();renderTicker();toast('تمت الإضافة ✅','ok');}
+function delTicker(i){config.ticker.splice(i,1);saveConfig();renderTicker();}
+
+// ════════════ Preview & Status ════════════
+function updatePreview(){
+  document.getElementById('prev-shopname').textContent='📚 '+config.shopName;
+  document.getElementById('prev-welcome').textContent=config.welcomeText;
+  document.getElementById('prev-sub').textContent=config.welcomeSub;
+  renderTicker();
+  var n=new Date();document.getElementById('prev-clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+function previewSlide(){
+  var active=config.slides.filter(function(s){return s.active;});
+  if(!active.length){toast('لا توجد شرائح مفعّلة ❌','err');return;}
+  var i=0,sc=document.getElementById('preview-screen');
+  function next(){
+    var s=active[i%active.length];
+    var build=function(imgData){
+      var bgCSS=buildBgCSS(s);
+      sc.style.background=bgCSS;
+      sc.innerHTML=(imgData?'<img src="'+imgData+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0">':'')+
+        '<div style="position:absolute;inset:0;background:rgba(0,0,0,'+(s.overlayOpacity||40)/100+');z-index:1"></div>'+
+        '<div class="preview-content" style="position:relative;z-index:2;text-align:'+s.textAlign+'">'+
+          '<div style="font-size:18px;font-weight:900">'+s.title+'</div>'+
+          (s.desc?'<div style="font-size:10px;opacity:.7;margin-top:4px">'+s.desc+'</div>':'')+
+          (s.badge?'<div style="margin-top:7px;padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;'+getBadgeCSS(s)+'">'+s.badge+'</div>':'')+
+        '</div>';
+      i++;
+    };
+    if(s.imageId)idbGet(s.imageId,function(err,img){build(img?img.data:null);});else build(null);
+  }
+  next();var iv=setInterval(function(){if(!document.getElementById('m-slide').classList.contains('show'))next();else clearInterval(iv);},2500);
+  toast('بدأت المعاينة ✅','ok',3000);
+}
+function buildBgCSS(s){
+  var GRAD_COLORS={purple:'radial-gradient(ellipse at 35% 45%,rgba(124,58,237,.30),transparent 65%)',blue:'radial-gradient(ellipse at 35% 45%,rgba(59,130,246,.30),transparent 65%)',green:'radial-gradient(ellipse at 35% 45%,rgba(16,185,129,.28),transparent 65%)',orange:'radial-gradient(ellipse at 35% 45%,rgba(245,158,11,.28),transparent 65%)',pink:'radial-gradient(ellipse at 35% 45%,rgba(236,72,153,.28),transparent 65%)',teal:'radial-gradient(ellipse at 35% 45%,rgba(20,184,166,.28),transparent 65%)',red:'radial-gradient(ellipse at 35% 45%,rgba(239,68,68,.28),transparent 65%)',dark:'rgba(15,23,42,1)',gold:'radial-gradient(ellipse at 35% 45%,rgba(234,179,8,.28),transparent 65%)',none:'transparent'};
+  if(s.bgType==='solid')return s.bgSolid||'#0a0a1a';
+  if(s.bgType==='preset'){var p=BG_PRESETS.filter(function(x){return x.id===s.bgPreset;})[0];return p?p.bg:'#0a0a1a';}
+  return GRAD_COLORS[s.color]||GRAD_COLORS.purple;
+}
+function getBadgeCSS(s){
+  var bs=s.badgeStyle||'filled';
+  if(bs==='filled')return 'background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;';
+  if(bs==='outline')return 'border:2px solid #7c3aed;color:#a855f7;background:transparent;';
+  if(bs==='neon')return 'border:2px solid #a855f7;color:#a855f7;box-shadow:0 0 12px rgba(168,85,247,.6);background:rgba(168,85,247,.1);';
+  return 'background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);backdrop-filter:blur(8px);';
+}
+function updateStatus(){
+  var cartRaw=localStorage.getItem('hashayshi_display_cart'),cfgRaw=localStorage.getItem('hashayshi_display_full_config');
+  var cart=null,cfgTs=null;
+  try{if(cartRaw)cart=JSON.parse(cartRaw);}catch(e){}
+  try{if(cfgRaw)cfgTs=JSON.parse(cfgRaw).ts;}catch(e){}
+  var imgSlides=config.slides.filter(function(s){return s.imageId;}).length;
+  var r=function(l,v,c){return'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>'+l+'</span><strong'+(c?' style="color:'+c+'"':'')+'>'+v+'</strong></div>';};
+  document.getElementById('display-status').innerHTML=
+    r('📡 آخر إرسال:',cfgTs?new Date(cfgTs).toLocaleTimeString('ar-DZ'):'لم يتم')+
+    r('🛒 السلة:',cart&&cart.active?'نشطة ('+cart.items.length+' أصناف)':'فارغة',cart&&cart.active?'#16a34a':'#9ca3af')+
+    r('🎞️ الشرائح:',config.slides.filter(function(s){return s.active;}).length+' / '+config.slides.length+' مفعّلة')+
+    r('🖼️ شرائح بصور:',imgSlides,imgSlides?'#7c3aed':null)+
+    r('⚡ التخزين:','IndexedDB — بدون حدود','#16a34a');
+}
+function loadSettingsForm(){
+  document.getElementById('set-shopname').value=config.shopName;
+  document.getElementById('set-welcome').value=config.welcomeText;
+  document.getElementById('set-sub').value=config.welcomeSub;
+  document.getElementById('set-dur').value=config.slideDuration;
+  document.getElementById('set-idle').value=config.idleTimeout;
+}
+function renderAll(){renderSlides();renderTicker();loadSettingsForm();updatePreview();updateStatus();}
+
+// ════════════ Toast ════════════
+function toast(msg,type,dur){var t=document.getElementById('toast');t.className='toast show '+(type||'');t.textContent=msg;clearTimeout(t._to);t._to=setTimeout(function(){t.className='toast';},dur||2500);}
+
+// ════════════ INIT ════════════
+window.onload=function(){
+  initDB(function(err){
+    document.getElementById('db-loading').style.display='none';
+    if(err){alert('فشل فتح قاعدة البيانات!\n'+err.message);return;}
+    loadConfig();loadImagesAndRender();renderAll();
+    setInterval(updatePreview,30000);setInterval(updateStatus,3000);
+    resetDropBox();updateBgSections();
+  });
+};
+</script>
+</body>
+</html>
