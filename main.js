@@ -1,5 +1,8 @@
 const { app, BrowserWindow, screen } = require('electron');
 
+// ── السطر المضاف لتعطيل قيود تشغيل الصوت تلقائياً ──
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 let mainWindow, adminWindow, customerWindow;
 
 function createWindows() {
@@ -14,7 +17,7 @@ function createWindows() {
   mainWindow = new BrowserWindow({
     width: 1000, height: 700,
     title: "الكاشير - مكتبة حشايشي",
-    webPreferences: { nodeIntegration: true }
+    webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
   mainWindow.loadFile('index.html');
   mainWindow.setMenuBarVisibility(false);
@@ -23,7 +26,7 @@ function createWindows() {
   adminWindow = new BrowserWindow({
     width: 600, height: 400,
     title: "لوحة تحكم الشاشة الخارجية",
-    webPreferences: { nodeIntegration: true }
+    webPreferences: { nodeIntegration: true, contextIsolation: false }
   });
   adminWindow.loadFile('display-admin.html');
   adminWindow.setMenuBarVisibility(false);
@@ -37,14 +40,14 @@ function createWindows() {
       height: externalDisplay.bounds.height,
       fullscreen: true,
       title: "شاشة الزبون",
-      webPreferences: { nodeIntegration: true }
+      webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
   } else {
     // إذا لم تتوفر شاشة خارجية، تفتح كنافذة تجريبية
     customerWindow = new BrowserWindow({
       width: 800, height: 600,
       title: "شاشة الزبون (تجريبية)",
-      webPreferences: { nodeIntegration: true }
+      webPreferences: { nodeIntegration: true, contextIsolation: false }
     });
   }
   customerWindow.loadFile('display.html');
@@ -55,3 +58,8 @@ function createWindows() {
 }
 
 app.whenReady().then(createWindows);
+
+// معالجة إغلاق التطبيق في أنظمة macOS
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
