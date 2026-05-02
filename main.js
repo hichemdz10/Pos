@@ -1,26 +1,57 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, screen } = require('electron');
 
-function createWindow () {
-  // إعدادات نافذة البرنامج
-  const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: true
-    }
+let mainWindow, adminWindow, customerWindow;
+
+function createWindows() {
+  let displays = screen.getAllDisplays();
+  
+  // البحث عن الشاشة الخارجية
+  let externalDisplay = displays.find((display) => {
+    return display.bounds.x !== 0 || display.bounds.y !== 0;
   });
 
-  // إخفاء شريط القوائم العلوي ليبدو كبرنامج احترافي
-  win.setMenuBarVisibility(false);
+  // 1. نافذة الكاشير الرئيسية (على شاشة الكمبيوتر)
+  mainWindow = new BrowserWindow({
+    width: 1000, height: 700,
+    title: "الكاشير - مكتبة حشايشي",
+    webPreferences: { nodeIntegration: true }
+  });
+  mainWindow.loadFile('index.html');
+  mainWindow.setMenuBarVisibility(false);
 
-  // تحميل ملفك الأساسي
-  win.loadFile('index.html');
+  // 2. لوحة تحكم شاشة الزبون (نافذة مستقلة على شاشة الكمبيوتر)
+  adminWindow = new BrowserWindow({
+    width: 600, height: 400,
+    title: "لوحة تحكم الشاشة الخارجية",
+    webPreferences: { nodeIntegration: true }
+  });
+  adminWindow.loadFile('display-admin.html');
+  adminWindow.setMenuBarVisibility(false);
+
+  // 3. شاشة الزبون (تفتح في الشاشة الخارجية)
+  if (externalDisplay) {
+    customerWindow = new BrowserWindow({
+      x: externalDisplay.bounds.x,
+      y: externalDisplay.bounds.y,
+      width: externalDisplay.bounds.width,
+      height: externalDisplay.bounds.height,
+      fullscreen: true,
+      title: "شاشة الزبون",
+      webPreferences: { nodeIntegration: true }
+    });
+  } else {
+    // إذا لم تتوفر شاشة خارجية، تفتح كنافذة تجريبية
+    customerWindow = new BrowserWindow({
+      width: 800, height: 600,
+      title: "شاشة الزبون (تجريبية)",
+      webPreferences: { nodeIntegration: true }
+    });
+  }
+  customerWindow.loadFile('display.html');
+  customerWindow.setMenuBarVisibility(false);
+
+  // إغلاق كل النوافذ عند إغلاق النافذة الرئيسية
+  mainWindow.on('closed', () => app.quit());
 }
 
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+app.whenReady().then(createWindows);
