@@ -1,0 +1,59 @@
+name: Build POS Desktop (Windows 32-bit)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-win32:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: "16"
+          cache: "npm"
+
+      # STEP 3: Install all packages (x64 tools first)
+      - name: Install dependencies
+        run: npm ci
+
+      # STEP 4 (CRITICAL): Reinstall native modules for ia32
+      # better-sqlite3 contains C++ that must be compiled for 32-bit
+      # Without this step -> white screen crash on 32-bit Windows
+      - name: Reinstall native modules for ia32
+        run: npm install --arch=ia32 --platform=win32
+        env:
+          npm_config_arch: ia32
+          npm_config_target_arch: ia32
+
+      # STEP 5 (CRITICAL): Recompile C++ addons for Electron 22 ia32
+      - name: Rebuild C++ addons for Electron ia32
+        run: npx electron-rebuild --arch=ia32 --version=22.3.27 --force
+        env:
+          npm_config_arch: ia32
+
+      # STEP 6: Build the installer
+      - name: Build Windows 32-bit installer
+        run: npm run build:win32
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # STEP 7: Upload to GitHub Release
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
