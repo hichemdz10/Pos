@@ -1,0 +1,49 @@
+{
+  "name": "pos-maktaba",
+  "version": "1.0.0",
+  "description": "مكتبة حشايشي — نظام نقطة البيع",
+  "main": "main.js",
+  "scripts": {
+    "start":       "electron .",
+    "build:win32": "electron-builder --win --ia32",
+    "build:win64": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "electron-store":  "^8.1.0",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "electron":           "22.3.27",
+    "electron-builder":   "^24.9.1",
+    "@electron/rebuild":  "^3.6.0"
+  },
+  "build": {
+    "appId":       "com.maktaba.pos",
+    "productName": "مكتبة حشايشي POS",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["ia32"] }
+      ]
+    },
+    "nsis": {
+      "oneClick":           false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["ar"],
+      "language":           "1025"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "database/**",
+      "sync/**",
+      "assets/**",
+      "node_modules/**"
+    ],
+    "extraResources": [
+      { "from": "database/", "to": "database/", "filter": ["**/*"] }
+    ]
+  }
+}
