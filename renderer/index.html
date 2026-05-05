@@ -83,8 +83,8 @@
 </head>
 <body>
   <div id="root"></div>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="text/babel" data-presets="react,env">
     const { useState, useEffect, useRef, useMemo } = React;
@@ -1547,9 +1547,9 @@ const playNotifSound = () => {
       const hotIds=useMemo(()=>{
         const counts={};
         (sales||[]).forEach(s=>(s.items||[]).forEach(it=>{counts[it.id]=(counts[it.id]||0)+it.qty;}));
-        return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([id])=>parseInt(id));
+        return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([id])=>id);
       },[sales]);
-      const hotProducts=hotIds.map(id=>products.find(p=>p.id===id)).filter(Boolean);
+      const hotProducts=hotIds.map(id=>products.find(p=>String(p.id)===String(id))).filter(Boolean);
 
       const {subTotal,discAmt,total}=calcCart(cart,discount);
       // #4 — change آمن
@@ -1558,7 +1558,7 @@ const playNotifSound = () => {
       const qty=cart.reduce((s,i)=>s+i.qty,0);
 
       // ── حسابات الولاء ──
-      const selCustObj = selCust ? customers.find(c=>c.id===parseInt(selCust)) : null;
+      const selCustObj = selCust ? customers.find(c=>String(c.id)===String(selCust)) : null;
       const custTotalSpent = selCustObj
         ? sales.filter(s=>Number(s.customerId)===Number(selCustObj.id)&&s.payMethod!=="return").reduce((s,x)=>s+(x.total||0),0)
         : 0;
@@ -1716,29 +1716,67 @@ const playNotifSound = () => {
           redeemDiscount:redeemDiscount>0?redeemDiscount:undefined,
           received,changeAmt:actualChange,
           payMethod,note:(note_draft.current||note||"").trim(),
-          customerId:selCust?parseInt(selCust):null
+          customerId:selCust||null
         };
         try {
-          // تجهيز حزمة البيانات بذكاء (لتجنب خطأ 400)
-          const payload = { p_sale_data: saleObj };
-          if (saleObj.customerId) {
-            payload.p_customer_id = saleObj.customerId;
+          let saleId;
+
+          if (IS_DESKTOP) {
+            // ── وضع الكمبيوتر: SQLite محلي عبر IPC ──
+            const desktopSaleObj = {
+              items:         JSON.stringify(saleObj.items),
+              total:         saleObj.total,
+              discount:      saleObj.discount || 0,
+              paid:          saleObj.received,
+              change:        saleObj.changeAmt,
+              paymentMethod: saleObj.payMethod,   // toSnake → payment_method
+              note:          saleObj.note,
+              saleDate:      saleObj.date,         // toSnake → sale_date
+              customerId:    saleObj.customerId,   // toSnake → customer_id
+            };
+            saleId = await window.electronAPI.db.save('sales', desktopSaleObj);
+
+            // تحديث المخزون لكل منتج (الخدمات _svc لا تحسب)
+            for (const item of saleObj.items) {
+              if (!item._svc && item.id) {
+                await window.electronAPI.db.updateStock(item.id, -item.qty);
+              }
+            }
+
+            // تحديث دين العميل (دين كامل أو جزئي)
+            if (saleObj.customerId && (saleObj.payMethod === 'debt' || saleObj.payMethod === 'partial')) {
+              const cust = customers.find(c => String(c.id) === String(saleObj.customerId));
+              if (cust) {
+                const extraDebt = saleObj.payMethod === 'debt'
+                  ? saleObj.total
+                  : Math.max(0, saleObj.total - (saleObj.received || 0));
+                await window.electronAPI.db.save('customers', { ...cust, debt: (cust.debt || 0) + extraDebt });
+              }
+            }
+          } else {
+            // ── وضع الهاتف: Supabase RPC ──
+            const payload = { p_sale_data: saleObj };
+            if (saleObj.customerId) payload.p_customer_id = saleObj.customerId;
+
+            const { data, error } = await supa.rpc('process_sale_transaction', payload);
+            if (error) throw new Error('خطأ اتصال: ' + error.message);
+            if (data && !data.ok) throw new Error(data.msg);
+            saleId = data.sale_id;
           }
-
-          // 🚀 استدعاء الطلب السريع والآمن (RPC)
-          const { data, error } = await supa.rpc("process_sale_transaction", payload);
-
-          if (error) throw new Error("خطأ اتصال: " + error.message);
-          if (data && !data.ok) throw new Error(data.msg);
-
-          const saleId = data.sale_id;
 
           // ── تحديث نقاط الولاء ──
           if(selCustObj && payMethod!=="return"){
             const newPoints = Math.max(0,(selCustObj.loyaltyPoints||0) - (redeemPts||0)) + willEarn;
             const newTotal  = custTotalSpent + finalTotal;
+            // على الكمبيوتر: ندمج تحديث الدين مع نقاط الولاء في عملية واحدة
+            const updatedDebt = IS_DESKTOP && (payMethod==='debt'||payMethod==='partial')
+              ? (selCustObj.debt||0) + (payMethod==='debt'
+                  ? finalTotal
+                  : Math.max(0, finalTotal-(saleObj.received||0)))
+              : (selCustObj.debt||0);
             await db.save("customers",{
               ...selCustObj,
+              debt: updatedDebt,
               loyaltyPoints: newPoints,
               totalPointsEarned:(selCustObj.totalPointsEarned||0)+willEarn,
               totalPurchases: newTotal,
@@ -2545,7 +2583,7 @@ const playNotifSound = () => {
                 ℹ الدفع الإلكتروني — المبلغ الكامل {fmt(total)} دج يُسجّل مباشرة
               </div>}
               {isDebt&&<div style={{marginTop:8,background:`${C.red}15`,border:`1px solid ${C.red}30`,borderRadius:8,padding:"7px 11px",fontSize:11,color:C.red}}>
-                ⚠ سيُسجّل المبلغ كدين{selCust?` على ${customers.find(c=>c.id===parseInt(selCust))?.name}`:" — بدون عميل (غير قابل للمتابعة)"}
+                ⚠ سيُسجّل المبلغ كدين{selCust?` على ${customers.find(c=>String(c.id)===String(selCust))?.name}`:" — بدون عميل (غير قابل للمتابعة)"}
               </div>}
               {isPartial&&<div style={{marginTop:8,background:`${C.acc}10`,border:`1px solid ${C.acc}25`,borderRadius:8,padding:"7px 11px",fontSize:11,color:C.acc}}>
                 ℹ أدخل المبلغ المدفوع جزئياً — الفرق يُسجّل كدين
@@ -2705,7 +2743,7 @@ const playNotifSound = () => {
 
           {/* ══ الشاشة العملاقة — كمبيوتر فقط ══ */}
           {!isMobile&&(
-            <CustomerDisplay total={total} lastProduct={lastAdded} itemsCount={qty} discount={discount} customerName={selCust?customers.find(c=>c.id===parseInt(selCust))?.name:null} onMenuOpen={onMenuOpen} sideOpen={sideOpen} cart={cart}/>
+            <CustomerDisplay total={total} lastProduct={lastAdded} itemsCount={qty} discount={discount} customerName={selCust?customers.find(c=>String(c.id)===String(selCust))?.name:null} onMenuOpen={onMenuOpen} sideOpen={sideOpen} cart={cart}/>
           )}
 
           {/* ══ شريط HUD مضغوط — موبايل فقط ══ */}
@@ -2901,7 +2939,7 @@ const playNotifSound = () => {
               {/* Product Grid */}
               <div style={{flex:1,overflowY:"auto",padding:10,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(108px,1fr))",gap:7,alignContent:"start"}}>
                 {filt.map((p)=>{
-                  const rank=hotIds.indexOf(p.id)+1||0;
+                  const rank=hotIds.findIndex(id=>String(id)===String(p.id))+1||0;
                   const isNew=p.createdAt&&(Date.now()-new Date(p.createdAt).getTime())<7*24*3600*1000;
                   return(
                     <PhotoCard key={p.id} p={p} onClick={()=>addFn(p)}
@@ -3433,7 +3471,7 @@ const playNotifSound = () => {
                   {/* شبكة المنتجات — أكبر وأوضح */}
                   <div style={{flex:1,overflowY:"auto",padding:14,display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:13,alignContent:"start"}}>
                     {kFilt.map(p=>{
-                      const rank=hotIds.indexOf(p.id)+1||0;
+                      const rank=hotIds.findIndex(id=>String(id)===String(p.id))+1||0;
                       const isNew=p.createdAt&&(Date.now()-new Date(p.createdAt).getTime())<7*24*3600*1000;
                       return(
                         <PhotoCard key={p.id} p={p} onClick={()=>addFn(p)}
@@ -3699,7 +3737,7 @@ const playNotifSound = () => {
               {form.price&&form.cost&&parseFloat(form.price)>0&&(
                 <div style={{background:`${C.grn}18`,border:`1px solid ${C.grn}30`,borderRadius:9,padding:"8px 12px",marginBottom:12,display:"flex",justifyContent:"space-between",fontSize:12}}>
                   <span style={{color:C.mut}}>هامش الربح</span>
-                  <span style={{color:C.grn,fontWeight:800}}>{Math.round((parseFloat(form.price)-parseFloat(form.cost||0))/parseFloat(form.price)*100)}% — {fmt(parseFloat(form.price)-parseFloat(form.cost||0))} دج</span>
+                  <span style={{color:C.grn,fontWeight:800}}>{parseFloat(form.price)>0?Math.round((parseFloat(form.price)-parseFloat(form.cost||0))/parseFloat(form.price)*100):0}% — {fmt(parseFloat(form.price)-parseFloat(form.cost||0))} دج</span>
                 </div>
               )}
               <div style={{display:"flex",gap:9}}>
@@ -4518,7 +4556,7 @@ const playNotifSound = () => {
             {f.price&&f.cost&&parseFloat(f.price)>0&&parseFloat(f.cost)>0&&(
               <div style={{background:"#052e16",border:"1px solid #166534",borderRadius:9,padding:"9px 13px",marginBottom:14,display:"flex",justifyContent:"space-between",fontSize:12}}>
                 <span style={{color:C.mut}}>هامش الربح:</span>
-                <span style={{fontWeight:800,color:C.grn}}>{((parseFloat(f.price)-parseFloat(f.cost))/parseFloat(f.price)*100).toFixed(1)}% — {fmt(parseFloat(f.price)-parseFloat(f.cost))} دج</span>
+                <span style={{fontWeight:800,color:C.grn}}>{parseFloat(f.price)>0?((parseFloat(f.price)-parseFloat(f.cost))/parseFloat(f.price)*100).toFixed(1):0}% — {fmt(parseFloat(f.price)-parseFloat(f.cost))} دج</span>
               </div>
             )}
             <div style={{display:"flex",gap:9}}>
@@ -5760,13 +5798,13 @@ const playNotifSound = () => {
             {/* Lines */}
             <div style={{flex:1,overflowY:"auto",padding:"12px 16px"}}>
               {lines.map((ln,i)=>{
-                const prod = products.find(p=>p.id===parseInt(ln.prodId));
+                const prod = products.find(p=>String(p.id)===String(ln.prodId));
                 return(
                   <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 70px 90px 32px",
                     gap:6,marginBottom:8,alignItems:"center"}}>
                     {/* المنتج */}
                     <select value={ln.prodId} onChange={e=>{
-                        const p=products.find(x=>x.id===parseInt(e.target.value));
+                        const p=products.find(x=>String(x.id)===String(e.target.value));
                         setLine(i,"prodId",e.target.value);
                         if(p&&!ln.cost) setLine(i,"cost",p.cost||"");
                       }}
@@ -5862,7 +5900,7 @@ const playNotifSound = () => {
       const savePurchase = async(lines, note)=>{
         // 1. تحديث مخزون كل منتج
         for(const ln of lines){
-          const prod = products.find(p=>p.id===parseInt(ln.prodId));
+          const prod = products.find(p=>String(p.id)===String(ln.prodId));
           if(!prod) continue;
           const newStock = (prod.stock||0) + (parseInt(ln.qty)||0);
           const newCost  = parseFloat(ln.cost)||prod.cost||0;
@@ -5873,8 +5911,8 @@ const playNotifSound = () => {
           supplierId: purSup.id,
           supplierName: purSup.name,
           items: lines.map(l=>({
-            prodId:  parseInt(l.prodId),
-            prodName: (products.find(p=>p.id===parseInt(l.prodId))||{}).name||"",
+            prodId: l.prodId,
+            prodName: (products.find(p=>String(p.id)===String(l.prodId))||{}).name||"",
             qty:     parseInt(l.qty),
             cost:    parseFloat(l.cost)||0,
           })),
@@ -7685,7 +7723,7 @@ function CopilotPanel({onClose, products, customers, sales, purchases, appSettin
     const mSales = sales.filter(s=>(s.date||"").slice(0,7)===month);
     const tRev   = tSales.reduce((a,s)=>a+s.total,0);
     const mRev   = mSales.reduce((a,s)=>a+s.total,0);
-    const tProfit=tSales.filter(x=>x.payMethod!=="return").reduce((s,x)=>{
+    const tProfit=tSales.reduce((s,x)=>{
       const discFactor=x.discount>0?(1-x.discount/100):1;
       return s+(x.items||[]).reduce((a,it)=>{
         const p=products.find(pr=>pr.id===it.id);
@@ -8159,7 +8197,7 @@ function DailySummaryModal({onClose, sales, products, customers, purchases, appS
 
   const todayRevenue = todaySales.reduce((s,x) => s+(x.total||0), 0);
 
-  const todayProfit = todaySales.filter(x=>x.payMethod!=="return").reduce((s,x) => {
+  const todayProfit = todaySales.reduce((s,x) => {
     const discFactor = x.discount>0?(1-x.discount/100):1;
     return s + (x.items||[]).reduce((a,it) => {
       const p    = products.find(pr => pr.id === it.id);
@@ -8410,7 +8448,7 @@ function HomeView({products, cats, customers, sales, packages, purchases, appSet
   const yesterdaySales = sales.filter(s=>(s.date||s.createdAt||"").slice(0,10)===yesterdayKey);
 
   const calcRev    = arr => arr.reduce((s,x)=>s+(x.total||0),0);
-  const calcProfit = arr => arr.filter(x=>x.payMethod!=="return").reduce((s,x)=>{
+  const calcProfit = arr => arr.reduce((s,x)=>{
     const discFactor=x.discount>0?(1-x.discount/100):1;
     return s+(x.items||[]).reduce((a,it)=>{
       const p=products.find(pr=>pr.id===it.id);
