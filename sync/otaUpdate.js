@@ -13,7 +13,7 @@ const { app } = require('electron');
 //  الإعدادات — عدّل GITHUB_RAW_URL لمستودعك
 // ══════════════════════════════════════════════════════
 const GITHUB_RAW_URL =
-  'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/renderer/index.html';
+  'https://raw.githubusercontent.com/hichemdz10/Pos/main/renderer/index.html';
 
 // مسار التحديث في userData (خارج ملفات التثبيت)
 const UPDATE_DIR  = path.join(app.getPath('userData'), 'renderer');
