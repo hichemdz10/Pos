@@ -1,5 +1,10 @@
-name: Build POS Desktop (Windows 32-bit)
+name: Build POS Desktop (Windows)
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  يعمل بطريقتين:
+#  1. git tag v1.0.0 + push  →  ينشئ Release رسمي تلقائياً
+#  2. تشغيل يدوي (Run workflow) →  يرفع الـ .exe كـ Artifact
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 on:
   push:
     tags:
@@ -9,47 +14,83 @@ on:
 jobs:
   build-win32:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
+      # ── 1. تحميل الكود ──────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 16
+      # ── 2. إعداد Node.js ────────────────────────────
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "16"
-          cache: "npm"
+          node-version: "20"
 
-      # STEP 3: Install all packages (x64 tools first)
+      # ── 3. تثبيت المكتبات ───────────────────────────
+      # نستخدم npm install بدل npm ci لأن npm ci تفشل
+      # إذا لم يكن package-lock.json موجوداً في الريبو
       - name: Install dependencies
-        run: npm ci
-
-      # STEP 4 (CRITICAL): Reinstall native modules for ia32
-      # better-sqlite3 contains C++ that must be compiled for 32-bit
-      # Without this step -> white screen crash on 32-bit Windows
-      - name: Reinstall native modules for ia32
-        run: npm install --arch=ia32 --platform=win32
+        run: npm install
         env:
           npm_config_arch: ia32
           npm_config_target_arch: ia32
+          npm_config_platform: win32
 
-      # STEP 5 (CRITICAL): Recompile C++ addons for Electron 22 ia32
-      - name: Rebuild C++ addons for Electron ia32
-        run: npx electron-rebuild --arch=ia32 --version=22.3.27 --force
+      # ── 4. إعادة تجميع C++ لـ 32-bit ────────────────
+      # better-sqlite3 يحتوي كود C++ يجب تجميعه للمعمارية المستهدفة
+      # بدون هذه الخطوة: شاشة بيضاء على Windows 32-bit
+      - name: Rebuild native modules for ia32
+        run: npx --yes @electron/rebuild --arch=ia32 --version=22.3.27 --force
         env:
           npm_config_arch: ia32
 
-      # STEP 6: Build the installer
+      # ── 5. إنشاء أيقونة افتراضية إن لم تكن موجودة ──
+      # electron-builder يفشل إذا أشار package.json لأيقونة غير موجودة
+      - name: Ensure assets folder and icon exist
+        shell: pwsh
+        run: |
+          if (!(Test-Path "assets")) { New-Item -ItemType Directory -Path "assets" }
+          if (!(Test-Path "assets/icon.ico")) {
+            Write-Host "icon.ico not found — creating placeholder..."
+            New-Item -ItemType File -Path "assets/icon.ico" | Out-Null
+          }
+          Write-Host "Assets folder ready."
+
+      # ── 6. بناء الـ Installer ─────────────────────────
       - name: Build Windows 32-bit installer
         run: npm run build:win32
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # STEP 7: Upload to GitHub Release
-      - name: Upload to Release
+      # ── 7a. رفع الـ .exe كـ Artifact (دائماً) ────────
+      # يمكن تحميله من صفحة Actions مباشرة بعد انتهاء البناء
+      - name: Upload installer as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: POS-Installer-Windows-32bit
+          path: |
+            dist/*.exe
+            dist/*.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      # ── 7b. نشر Release رسمي (عند push tag فقط) ──────
+      # يتجاهل هذه الخطوة تلقائياً عند التشغيل اليدوي
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          name: "POS مكتبة حشايشي ${{ github.ref_name }}"
+          body: |
+            ## نظام نقطة البيع — ${{ github.ref_name }}
+
+            ### طريقة التثبيت
+            1. حمّل ملف `Setup-*.exe` أدناه
+            2. شغّله وانتظر اكتمال التثبيت
+            3. ابحث عن "مكتبة حشايشي POS" في قائمة Start
+
+            > ⚠️ إذا ظهر تحذير Windows Defender، اضغط **More info** ثم **Run anyway**
           files: |
             dist/*.exe
             dist/*.zip
